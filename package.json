@@ -21,6 +21,7 @@
     "express-session": "^1.18.0",
     "passport": "^0.7.0",
     "passport-google-oauth2": "^0.2.0",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "twilio": "^5.0.4"
   }
 }
