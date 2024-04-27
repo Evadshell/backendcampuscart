@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import env from "dotenv";
 import bcrypt from "bcrypt";
+import { Strategy } from "passport-local";
 import passport from "passport";
 import GoogleStrategy from "passport-google-oauth2";
 import session from "express-session";
@@ -13,6 +14,8 @@ const app = express();
 const port = 5000;
 const saltRounds = 10;
 const { Pool } = pg;
+
+const router = express.Router();
 env.config();
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
@@ -82,13 +85,72 @@ passport.use(
     }
   )
 );
+passport.use(
+  "local",
+  new Strategy(async function verify(username, password, cb) {
+    try {
+      const result = await db1.query("SELECT * FROM owners WHERE owner_email = $1 ", [
+        username,
+      ]);
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const storedHashedPassword = user.password;
+        bcrypt.compare(password, storedHashedPassword, (err, valid) => {
+          if (err) {
+            console.error("Error comparing passwords:", err);
+            return cb(err); // Pass the error to the callback
+          } else {
+            if (valid) {
+              return cb(null, user); // Pass the user to the callback
+            } else {
+              return cb(null, false, { message: "Incorrect password" }); // Password is incorrect
+            }
+          }
+        });
+      } else {
+        return cb(null, false, { message: "User not found" }); // User not found
+      }
+    } catch (err) {
+      console.log("Database error:", err);
+      return cb(err); // Pass database error to the callback
+    }
+  })
+);
+
 passport.serializeUser((user, cb) => {
   cb(null, user);
 });
-
+app.use('/images', express.static(path.join(__dirname, 'images')));
 passport.deserializeUser((user, cb) => {
   cb(null, user);
 });
+app.post('/merchantlogin', passport.authenticate('local'), async (req, res) => {
+
+    
+  if (req.isAuthenticated()) {
+    const username = req.query.username;
+    console.log(username);
+    const result = await db1.query("SELECT * FROM owners WHERE owner_email = $1",[username]);
+    console.log(result);
+    const user1 = result.rows[0];
+    console.log('Login successful:', user1);
+  
+    res.json({ message: 'Login successful', user: user1});
+  } else {
+    res.status(401).json({ message: 'Unauthorized' });
+  }
+});
+app.get("/merchantorders", async (req, res) => {
+  console.log("Request Query:", req.query);
+const username = req.query.username;
+
+  console.log(username);
+  const result1 = await db1.query("SELECT * FROM orders WHERE ordered_to_name = $1 ORDER BY id DESC;",[username]);
+  const orders = result1.rows;
+  console.log(orders);
+  res.status(200).json({message:"user login",order:orders})
+});
+
 app.get(
   "/auth/google",
   passport.authenticate("google", {
@@ -102,7 +164,6 @@ app.get(
     failureRedirect: "http://localhost:3000/login",
   })
 );
-//app.get login and register dono ka bana na hoga login pe normal register pe add form then normal
 app.get("/login/success",async(req,res)=>{
  
 
@@ -122,6 +183,41 @@ app.get("/login/success",async(req,res)=>{
     res.status(400).json({message:"not logged in "})
   }
 })
+app.get("/products",async(req,res)=>{
+  console.log(req.query.store_name);
+  const result = await db1.query("SELECT * FROM products WHERE store_name = $1",[req.query.store_name]);
+  const products = result.rows;
+  console.log(products);
+  res.status(200).json({message:"products",products:products})
+
+})
+app.get("/updateproducts",async(req,res)=>{
+  const {
+    id,
+    store_id,
+    product_name,
+    product_price,
+    product_quantity,
+    product_image,
+    stock,
+    product_category,
+    store_name,
+  } = req.query;
+  console.log(req.query);
+  try{
+    const result = db1.query("UPDATE products SET(product_name,product_price,product_quantity,stock,product_category) = ($1,$2,$3,$4,$5) WHERE id = $6",[product_name,product_price,product_quantity,stock,product_category,id])
+
+  }
+  catch(err){
+    console.log(err);
+  }
+})
+app.post('/addproduct', (req, res) => {
+  const { productName, productPrice, productQuantity, productCategory, productImage } = req.body;
+  console.log(productName, productImage);
+
+  res.status(200).json({ message: 'Product added successfully' });
+});
 app.get("/storedetail",async(req,res)=>{
  
 
@@ -179,7 +275,7 @@ app.get("/getorder",async(req,res)=>{
   console.log(orderString);
     console.log(orderItems,req.query.totalPrice);
     const date= new Date();
-    // const result1 = await db1.query("INSERT INTO orders (ordered_by_name, ordered_by_contact, ordered_by_address, ordered_items, ordered_to_name, ordered_to_contact, date_time)VALUES ($1, $2, $3, $4, $5, $6, $7)",[users.name,users.contact,users.address,orderString,stores.store_name,stores.owner_contact,date]);
+    const result1 = await db1.query("INSERT INTO orders (ordered_by_name, ordered_by_contact, ordered_by_address, ordered_items, ordered_to_name, ordered_to_contact, date_time,total_price)VALUES ($1, $2, $3, $4, $5, $6, $7,$8)",[users.name,users.contact,users.address,orderString,stores.store_name,stores.owner_contact,date,req.query.totalPrice]);
     // client.messages
     // .create({
     //     body: `order from ${users.name}, ${users.contact} items : ${orderString} at ${users.address}, ${date}`,
