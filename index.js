@@ -253,12 +253,6 @@ app.get("/cart",async(req,res)=>{
     res.status(400).json({message:"not logged in "})
   }
 })
-const accountSid = process.env.ACCOUNTSID;
-const authToken = process.env.AUTHTOKEN;
-import twilio from 'twilio';
-
-const client = twilio(accountSid, authToken);
-
 
 app.get("/getorder",async(req,res)=>{
   if(req.isAuthenticated()){
