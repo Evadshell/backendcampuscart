@@ -270,15 +270,7 @@ app.get("/getorder",async(req,res)=>{
     console.log(orderItems,req.query.totalPrice);
     const date= new Date();
     const result1 = await db1.query("INSERT INTO orders (ordered_by_name, ordered_by_contact, ordered_by_address, ordered_items, ordered_to_name, ordered_to_contact, date_time,total_price)VALUES ($1, $2, $3, $4, $5, $6, $7,$8)",[users.name,users.contact,users.address,orderString,stores.store_name,stores.owner_contact,date,req.query.totalPrice]);
-    // client.messages
-    // .create({
-    //     body: `order from ${users.name}, ${users.contact} items : ${orderString} at ${users.address}, ${date}`,
-    //     from: '+12562978627',
-    //     to: `+91${stores.owner_contact}`,
-    //     to: '+919827257180'
-    // })
-    // .then(message => console.log(message.sid))
-    // .catch(error => console.error(error));
+
     res.status(200).json({message:"logged in",user:req.user})
   }
   else {
@@ -290,7 +282,7 @@ app.get("/userData",async (req,res)=>{
   const name = req.query.name;
   const contact = req.query.contact;
   const address = req.query.address;
-  console.log(name,contact,address,email);
+  // console.log(name,contact,address,email);
   const result = await db1.query("UPDATE users SET (name,contact,address) = ($1,$2,$3) WHERE email = $4",[name,contact,address,email] );
 
 })
