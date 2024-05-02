@@ -8,7 +8,8 @@ import GoogleStrategy from "passport-google-oauth2";
 import session from "express-session";
 import { db } from "@vercel/postgres";
 import pg from "pg";
-import path from "path"; 
+import path from "path";
+import multer from 'multer';
 import cors from "cors";
 const app = express();
 const port = 5000;
@@ -212,10 +213,23 @@ app.get("/updateproducts",async(req,res)=>{
     console.log(err);
   }
 })
-app.post('/addproduct', (req, res) => {
-  const { productName, productPrice, productQuantity, productCategory, productImage } = req.body;
-  console.log(productName, productImage);
+const upload = multer({ dest: 'uploads/' });
+app.use('/uploads', express.static('uploads'));
 
+app.post('/addproduct', upload.single('productImage'), (req, res) => {
+  const { productName, StoreName,
+    StoreId, productPrice, productQuantity, productCategory } = req.body;
+    console.log( StoreName,
+      StoreId)
+ let productImage = req.file ? req.file.path : null; 
+  console.log(productName, productImage);
+  try{
+    const result = db1.query( "INSERT INTO products (product_name, product_price, product_quantity, product_image, product_category,store_id,store_name) VALUES ($1, $2, $3, $4, $5,$6,$7)",[productName,productPrice,productQuantity,productImage,productCategory,4,StoreName])
+
+  }
+  catch(err){
+    console.log(err);
+  }
   res.status(200).json({ message: 'Product added successfully' });
 });
 app.get("/storedetail",async(req,res)=>{
